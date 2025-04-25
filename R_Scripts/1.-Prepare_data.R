@@ -8,7 +8,11 @@ presences <- st_read("C:/SCIENCE/2025_INIA_Cinchona/Data/Coordenadas_Cinchona _o
 
 # Visualize data
 leaflet() %>%
-  addTiles() %>%
+  addProviderTiles(
+    providers$Esri.WorldImagery,
+    options = providerTileOptions()
+  ) %>%
+  addTiles(options = tileOptions(opacity = 0.5)) %>%
   addCircleMarkers(data = presences, 
                    lng = st_coordinates(presences)[,1], 
                    lat = st_coordinates(presences)[,2], 
