@@ -2,7 +2,7 @@ library(sf)
 library(leaflet)
 
 # Read data
-presences <- st_read("C:/SCIENCE/2025_INIA_Cinchona/Data/Coordenadas_Cinchona _officinalis_Peru.gdb") %>% 
+presences <- st_read("C:/SCIENCE/2025_INIA_Cinchona/Data/Data_C_Officinalis/Data_C_Officinalis.gdb") %>% 
   st_transform(crs = 4326)
 
 
