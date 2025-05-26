@@ -1,0 +1,236 @@
+---
+title: "Conchina Officinalis SDM analysis"
+author: "José Carlos"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    css: styles.css
+    toc: yes
+    toc_float: yes
+    number_sections: yes
+    theme: simplex
+    highlight: tango
+    df_print: kable
+    code_folding: "hide"
+    keep_md: no
+  pdf_document:
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# Packages
+library(terra)
+library(tidyterra)
+library(sf)
+library(tidyverse)
+library(leaflet)
+library(ggpubr)
+library(ecospat)
+library(easystats)
+library(ggnewscale) # add several color/fill scales
+```
+
+
+```{r functions, echo=FALSE, message=FALSE, warning=FALSE}
+read_current_projections <- function(cutoff_value, apply_cutoff = T, binarize = F, clip_layer) {
+  # Validación de incompatibilidad
+  if (apply_cutoff && binarize) {
+    stop("Los argumentos 'apply_cutoff' y 'binarize' no pueden ser ambos TRUE. Elige solo uno.")
+  }
+
+  sdm <- rast(
+    "C:/SCIENCE/2025_INIA_Cinchona/SDM_output/cinchona/proj_Current_EM/proj_Current_EM_cinchona_ensemble.tif"
+  ) / 1000
+
+  if (!is.null(clip_layer)) {
+    sdm <- crop(sdm, clip_layer, mask = TRUE)
+  }
+
+  if (apply_cutoff) {
+    # Apply the cutoff value
+    sdm[sdm < cutoff_value] <- 0
+  }
+  if (binarize) {
+    # Binarize the projection
+    sdm[sdm >= cutoff_value] <- 1
+    sdm[sdm < cutoff_value] <- 0
+
+    cls <- data.frame(id = 0:1, cover = c("No", "Yes"))
+    levels(sdm) <- cls
+  }
+
+  names(sdm) <- "Current"
+  return(sdm)
+}
+
+read_future_projections <- function(cutoff_value, apply_cutoff = TRUE, binarize = FALSE, clip_layer, desired_scenario = NULL, desired_time = NULL) {
+  if (apply_cutoff && binarize) {
+    stop("Los argumentos 'apply_cutoff' y 'binarize' no pueden ser ambos TRUE. Elige solo uno.")
+  }
+
+  sdm_paths <- list(
+    "SSP3-7.0 2011-2040" = "C:/SCIENCE/2025_INIA_Cinchona/SDM_output/cinchona/proj_ssp370_2011-2040_EM/proj_ssp370_2011-2040_EM_cinchona_ensemble.tif",
+    "SSP3-7.0 2041-2070" = "C:/SCIENCE/2025_INIA_Cinchona/SDM_output/cinchona/proj_ssp370_2041-2070_EM/proj_ssp370_2041-2070_EM_cinchona_ensemble.tif",
+    "SSP3-7.0 2071-2100" = "C:/SCIENCE/2025_INIA_Cinchona/SDM_output/cinchona/proj_ssp370_2071-2100_EM/proj_ssp370_2071-2100_EM_cinchona_ensemble.tif",
+    "SSP5-8.5 2011-2040" = "C:/SCIENCE/2025_INIA_Cinchona/SDM_output/cinchona/proj_ssp585_2011-2040_EM/proj_ssp585_2011-2040_EM_cinchona_ensemble.tif",
+    "SSP5-8.5 2041-2070" = "C:/SCIENCE/2025_INIA_Cinchona/SDM_output/cinchona/proj_ssp585_2041-2070_EM/proj_ssp585_2041-2070_EM_cinchona_ensemble.tif",
+    "SSP5-8.5 2071-2100" = "C:/SCIENCE/2025_INIA_Cinchona/SDM_output/cinchona/proj_ssp585_2071-2100_EM/proj_ssp585_2071-2100_EM_cinchona_ensemble.tif"
+  )
+  
+  if(!is.null(desired_scenario)) {
+    sdm_paths <- sdm_paths[grep(paste0("^", desired_scenario), names(sdm_paths))]
+  }
+  if(!is.null(desired_time)) {
+    sdm_paths <- sdm_paths[grep(desired_time, names(sdm_paths))]
+  }
+  
+
+  sdm_list <- lapply(names(sdm_paths), function(n) {
+    r <- rast(sdm_paths[[n]]) / 1000
+    names(r) <- n
+    r
+  })
+
+  sdm <- do.call(c, sdm_list)
+
+  if (!is.null(clip_layer)) {
+    sdm <- crop(sdm, clip_layer, mask = TRUE)
+  }
+
+  previous_names <- names(sdm)
+
+  if (apply_cutoff) {
+    sdm <- app(sdm, fun = function(x) ifelse(x < cutoff_value, 0, x))
+  }
+
+  if (binarize) {
+    sdm <- app(sdm, fun = function(x) ifelse(x >= cutoff_value, 1, 0))
+    
+    # Aplicar niveles a todas las capas (opcional)
+    for (i in 1:nlyr(sdm)) {
+      levels(sdm[[i]]) <- data.frame(id = 0:1, cover = c("No", "Yes"))
+    }
+  }
+
+  names(sdm) <- previous_names
+  return(sdm)
+}
+
+
+leaflet_map <- function(apply_cutoff = TRUE, binarize = FALSE, clip_layer, desired_scenario = NULL, desired_time = NULL) {
+  library(terra)
+  library(leaflet)
+  library(sf)
+  library(dplyr)
+
+  # Leer puntos de presencia
+  presences <- st_read("C:/SCIENCE/2025_INIA_Cinchona/Data/Data_C_Officinalis/Data_C_Officinalis.gdb") %>% 
+    st_transform(crs = 4326)
+
+  # Leer el umbral de corte
+  threshold <- read.csv("C:/SCIENCE/2025_INIA_Cinchona/SDM_output/single_eval.csv") %>%
+    summarise(
+      cutoff = median(cutoff, na.rm = TRUE) / 1000,
+      validation = median(validation, na.rm = TRUE)
+    )
+
+  # Leer proyecciones actual y futura
+  sdm_current <- read_current_projections(
+    cutoff_value = threshold$cutoff,
+    apply_cutoff = apply_cutoff,
+    binarize = binarize,
+    clip_layer = clip_layer
+  )
+
+  # sdm_future <- read_future_projections(
+  #   cutoff_value = threshold$cutoff,
+  #   apply_cutoff = apply_cutoff,
+  #   binarize = binarize,
+  #   clip_layer = clip_layer,
+  #   desired_scenario = desired_scenario,
+  #   desired_time = desired_time
+  # )
+
+  # Crear paleta para valores [0, 1]
+  pal_01 <- colorNumeric(
+    palette = "Spectral",
+    domain = c(0, 1),
+    na.color = "transparent",
+    reverse = TRUE
+  )
+
+  # Crear el mapa base
+  map <- leaflet() %>%
+    addTiles()
+
+  # Agregar capa actual
+  map <- map %>%
+    addRasterImage(
+      sdm_current,
+      colors = pal_01,
+      opacity = 1,
+      group = "Current"
+    )
+
+  # # Agregar capas futuras dinámicamente
+  # for (i in 1:nlyr(sdm_future)) {
+  #   lyr_name <- names(sdm_future)[i]
+  #   map <- map %>%
+  #     addRasterImage(
+  #       sdm_future[[i]],
+  #       colors = pal_01,
+  #       opacity = 1,
+  #       group = lyr_name
+  #     )
+  # }
+
+  # Agregar leyenda
+  map <- map %>%
+    addLegend(
+      pal = pal_01,
+      values = c(0, 1),
+      position = "bottomleft",
+      title = "Suitability"
+    )
+
+  # Agregar puntos de presencia
+  map <- map %>%
+    addCircleMarkers(
+      data = presences,
+      radius = 1,
+      color = "black",
+      fill = TRUE,
+      fillOpacity = 0.5,
+      group = "Presences"
+    )
+
+  # Control de capas
+  # future_names <- names(sdm_future)
+  map <- map %>%
+    addLayersControl(
+      # overlayGroups = c("Current", future_names, "Presences"),
+      overlayGroups = c("Current", "Presences"),
+      options = layersControlOptions(collapsed = FALSE)
+    )
+
+  return(map)
+}
+
+```
+
+
+
+# SDM projections
+
+```{r Cinchona, echo=FALSE, message=FALSE, warning=FALSE, out.width = "100%"}
+leaflet_map(
+  apply_cutoff = TRUE, 
+  binarize = FALSE, 
+  clip_layer = NULL, 
+  desired_scenario = NULL, 
+  desired_time = NULL
+)
+
+```
+
