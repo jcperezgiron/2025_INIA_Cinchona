@@ -208,6 +208,11 @@ myBiomodEMProj <- BIOMOD_EnsembleForecasting(
 myBiomodEMProj
 
 
+# Load the models output and ensemble models output
+myBiomodModelOut <- get(load("C:/SCIENCE/2025_INIA_Cinchona/SDM_output/cinchona/cinchona.1748044986.models.out"))
+myBiomodEM <- get(load("C:/SCIENCE/2025_INIA_Cinchona/SDM_output/cinchona/cinchona.1748044986.ensemble.models.out"))
+
+
 #### 7.- Project onto future conditions ####
 scenarios <- c("ssp370", "ssp585") # RCP scenarios
 years <- c("2011-2040", "2041-2070", "2071-2100") # years to project
@@ -228,10 +233,19 @@ for (year in years) {
     # Select only the layers that were included in rasStack_1
     myExplFuture <- subset(myExplFuture, names(rasStack_1))
     
+    # Project onto future conditions
+    myBiomodProjectionFuture <- BIOMOD_Projection(bm.mod = myBiomodModelOut,
+                                                  proj.name = paste0(scenario, "_", year),
+                                                  new.env = myExplFuture,
+                                                  models.chosen = 'all',
+                                                  metric.binary = 'BOYCE',
+                                                  metric.filter = 'BOYCE',
+                                                  build.clamping.mask = TRUE)
+    
     # Project ensemble models
     myBiomodEMProjectionFuture <- BIOMOD_EnsembleForecasting(bm.em = myBiomodEM,
+                                                             bm.proj = myBiomodProjectionFuture,
                                                              proj.name = paste0(scenario, "_", year, "_EM"),
-                                                             new.env = myExplFuture,
                                                              models.chosen = 'all',
                                                              metric.binary = 'BOYCE',
                                                              metric.filter = 'BOYCE',
@@ -239,6 +253,7 @@ for (year in years) {
                                                              nb.cpu = 8,
                                                              na.rm = FALSE
     )
+    
   }
 }
 
