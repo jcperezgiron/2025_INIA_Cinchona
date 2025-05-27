@@ -143,14 +143,14 @@ leaflet_map <- function(apply_cutoff = TRUE, binarize = FALSE, clip_layer, desir
     clip_layer = clip_layer
   )
 
-  # sdm_future <- read_future_projections(
-  #   cutoff_value = threshold$cutoff,
-  #   apply_cutoff = apply_cutoff,
-  #   binarize = binarize,
-  #   clip_layer = clip_layer,
-  #   desired_scenario = desired_scenario,
-  #   desired_time = desired_time
-  # )
+  sdm_future <- read_future_projections(
+    cutoff_value = threshold$cutoff,
+    apply_cutoff = apply_cutoff,
+    binarize = binarize,
+    clip_layer = clip_layer,
+    desired_scenario = desired_scenario,
+    desired_time = desired_time
+  )
 
   # Crear paleta para valores [0, 1]
   pal_01 <- colorNumeric(
@@ -173,17 +173,17 @@ leaflet_map <- function(apply_cutoff = TRUE, binarize = FALSE, clip_layer, desir
       group = "Current"
     )
 
-  # # Agregar capas futuras dinámicamente
-  # for (i in 1:nlyr(sdm_future)) {
-  #   lyr_name <- names(sdm_future)[i]
-  #   map <- map %>%
-  #     addRasterImage(
-  #       sdm_future[[i]],
-  #       colors = pal_01,
-  #       opacity = 1,
-  #       group = lyr_name
-  #     )
-  # }
+  # Agregar capas futuras dinámicamente
+  for (i in 1:nlyr(sdm_future)) {
+    lyr_name <- names(sdm_future)[i]
+    map <- map %>%
+      addRasterImage(
+        sdm_future[[i]],
+        colors = pal_01,
+        opacity = 1,
+        group = lyr_name
+      )
+  }
 
   # Agregar leyenda
   map <- map %>%
@@ -206,11 +206,10 @@ leaflet_map <- function(apply_cutoff = TRUE, binarize = FALSE, clip_layer, desir
     )
 
   # Control de capas
-  # future_names <- names(sdm_future)
+  future_names <- names(sdm_future)
   map <- map %>%
     addLayersControl(
-      # overlayGroups = c("Current", future_names, "Presences"),
-      overlayGroups = c("Current", "Presences"),
+      overlayGroups = c("Current", future_names, "Presences"),
       options = layersControlOptions(collapsed = FALSE)
     )
 
