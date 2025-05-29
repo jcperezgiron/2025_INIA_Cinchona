@@ -233,3 +233,45 @@ leaflet_map(
 
 ```
 
+# Importancia de las variables
+
+```{r variable_importance, echo=FALSE, message=FALSE, warning=FALSE, out.width = "100%"}
+# Leerlos datos
+varimp <- read.csv("C:/SCIENCE/2025_INIA_Cinchona/SDM_output/ensemble_varimp.csv")
+
+# Calcular resumen por variable
+varimp_summary <- varimp %>%
+  group_by(expl.var) %>%
+  summarise(
+    median_imp = median(var.imp, na.rm = TRUE)
+  )
+
+# Graficar importancia de las variables
+var_importance_plot <- varimp_summary %>%
+  mutate(expl.var = case_when(
+    expl.var == "bio1" ~ "Mean annual temperature (Bio1)",
+    expl.var == "bio12" ~ "Annual precipitation (Bio12)",
+    expl.var == "bio15" ~ "Precipitation seasonality (Bio15)",
+    expl.var == "phh2o" ~ "pH",
+    expl.var == "soc" ~ "Soil organic carbon (SOC)",
+    expl.var == "bdod" ~ "Bulk density (BDOD)"
+  )) %>% 
+  arrange(median_imp) %>%
+  mutate(expl.var = factor(expl.var, levels = expl.var)) %>%
+  # mutate(expl.var = tidytext::reorder_within(expl.var, median_imp)) %>%
+  ggplot(aes(x = median_imp, y = expl.var)) +
+  geom_segment(aes(xend = 0, yend = expl.var)) +
+  geom_point(size = 2, color = "#f18f01") +
+  tidytext::scale_y_reordered() +
+  scale_x_continuous(labels = scales::number_format(accuracy = 0.01)) +
+  labs(x = "Median variable importance\n(10 random permutations)")+
+  theme_bw(base_size = 10) +
+  theme(
+    legend.position = "bottom",
+    axis.title.y = element_blank()
+  )
+
+var_importance_plot
+
+```
+
