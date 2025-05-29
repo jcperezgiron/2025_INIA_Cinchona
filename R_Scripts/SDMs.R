@@ -213,7 +213,7 @@ myBiomodModelOut <- get(load("C:/SCIENCE/2025_INIA_Cinchona/SDM_output/cinchona/
 myBiomodEM <- get(load("C:/SCIENCE/2025_INIA_Cinchona/SDM_output/cinchona/cinchona.1748044986.ensemble.models.out"))
 
 # Response curves
-response_curves_data <- bm_PlotResponseCurves(bm.out = myBiomodModelOut, 
+response_curves_data <- bm_PlotResponseCurves(bm.out = myBiomodEM, 
                       models.chosen = "all",
                       fixed.var = 'median')$tab
 
