@@ -212,6 +212,12 @@ myBiomodEMProj
 myBiomodModelOut <- get(load("C:/SCIENCE/2025_INIA_Cinchona/SDM_output/cinchona/cinchona.1748044986.models.out"))
 myBiomodEM <- get(load("C:/SCIENCE/2025_INIA_Cinchona/SDM_output/cinchona/cinchona.1748044986.ensemble.models.out"))
 
+# Response curves
+response_curves_data <- bm_PlotResponseCurves(bm.out = myBiomodModelOut, 
+                      models.chosen = "all",
+                      fixed.var = 'median')$tab
+
+write.csv(response_curves_data, file.path(output_dir, "response_curves.csv"), row.names = F)
 
 #### 7.- Project onto future conditions ####
 scenarios <- c("ssp370", "ssp585") # RCP scenarios
