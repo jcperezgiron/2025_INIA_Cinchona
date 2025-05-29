@@ -275,3 +275,107 @@ var_importance_plot
 
 ```
 
+# Curvas de respuesta
+
+Las curvas de respuesta obtenidas permiten visualizar la sensibilidad del modelo frente a la variable analizada. Es importante señalar que este enfoque asume la independencia entre variables, por lo que no captura posibles efectos de interacción.
+
+```{r response_curves, echo=FALSE, message=FALSE, warning=FALSE, out.width = "100%"}
+# Read single eval and select only those with validation boyce > 0.7
+single_eval <- read.csv("C:/SCIENCE/2025_INIA_Cinchona/SDM_output/single_eval.csv") %>% 
+  filter(validation > 0.7) 
+
+# read response curves data and filter by the selected models 
+response_curves_data <- read.csv("C:/SCIENCE/2025_INIA_Cinchona/SDM_output/response_curves.csv") %>% 
+  filter(pred.name %in% single_eval$full.name) %>% 
+  dplyr::select(-id)
+
+response_curves_summary <- response_curves_data %>%
+  group_by(expl.name, expl.val) %>%
+  summarise(
+    sd = sd(pred.val, na.rm = TRUE),
+    se = sd / sqrt(n()),
+    pred.val = median(pred.val, na.rm = TRUE),
+  ) %>%
+  mutate(
+    expl.name = case_when(
+      expl.name == "bio1" ~ "Mean annual temperature (Bio1)",
+      expl.name == "bio12" ~ "Annual precipitation (Bio12)",
+      expl.name == "bio15" ~ "Precipitation seasonality (Bio15)",
+      expl.name == "phh2o" ~ "pH",
+      expl.name == "soc" ~ "Soil organic carbon (SOC)",
+      expl.name == "bdod" ~ "Bulk density (BDOD)"
+    ),
+    expl.name = factor(expl.name, 
+                       levels = c("Mean annual temperature (Bio1)", 
+                                  "Annual precipitation (Bio12)", 
+                                  "Precipitation seasonality (Bio15)", 
+                                  "pH", 
+                                  "Soil organic carbon (SOC)", 
+                                  "Bulk density (BDOD)"))
+  ) %>% 
+  mutate(expl.val = case_when(
+    expl.name == "pH" ~ expl.val * 10,
+    expl.name == "Soil organic carbon (SOC)" ~ expl.val * 10,
+    expl.name == "Bulk density (BDOD)" ~ expl.val * 100,
+    .default = expl.val
+  ))
+
+response_curves_plot <- ggplot(response_curves_summary, aes(x = expl.val, y = pred.val)) +
+  geom_line(size = 1, color = "#e63946") +
+  geom_ribbon(aes(ymin = pred.val - se, ymax = pred.val + se), alpha = 0.2, fill = "#e63946") +
+  facet_wrap(~ expl.name, scales = "free_x") +
+  labs(y = "Predicted suitability") +
+  theme_bw(base_size = 10) +
+  theme(
+    legend.position = "bottom",
+    axis.title.x = element_blank()
+  )
+
+response_curves_plot
+
+#############
+
+# # read response curves data
+# response_curves_data <- read.csv("C:/SCIENCE/2025_INIA_Cinchona/SDM_output/response_curves.csv") %>% 
+#   mutate(
+#     expl.name = case_when(
+#       expl.name == "bio1" ~ "Mean annual temperature (Bio1)",
+#       expl.name == "bio12" ~ "Annual precipitation (Bio12)",
+#       expl.name == "bio15" ~ "Precipitation seasonality (Bio15)",
+#       expl.name == "phh2o" ~ "pH",
+#       expl.name == "soc" ~ "Soil organic carbon (SOC)",
+#       expl.name == "bdod" ~ "Bulk density (BDOD)"
+#     ),
+#     expl.name = factor(expl.name, 
+#                        levels = c("Mean annual temperature (Bio1)", 
+#                                   "Annual precipitation (Bio12)", 
+#                                   "Precipitation seasonality (Bio15)", 
+#                                   "pH", 
+#                                   "Soil organic carbon (SOC)", 
+#                                   "Bulk density (BDOD)"))
+#   ) %>% 
+#   mutate(expl.val = case_when(
+#     expl.name == "pH" ~ expl.val * 10,
+#     expl.name == "Soil organic carbon (SOC)" ~ expl.val * 10,
+#     expl.name == "Bulk density (BDOD)" ~ expl.val * 100,
+#     .default = expl.val
+#   ))
+#   
+# response_curves_plot <- ggplot(response_curves_data, aes(x = expl.val, y = pred.val)) +
+#   geom_line(size = 1, color = "red") +
+#   facet_wrap(~ expl.name, scales = "free_x") +
+#   labs(y = "Predicted suitability") +
+#   theme_bw(base_size = 10) +
+#   theme(
+#     legend.position = "bottom",
+#     axis.title.x = element_blank()
+#   )
+# 
+# response_curves_plot
+
+```
+
+
+
+
+```
