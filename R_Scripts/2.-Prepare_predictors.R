@@ -21,7 +21,7 @@ presences <- st_read("C:/SCIENCE/2025_INIA_Cinchona/Data/Data_C_Officinalis/Data
   st_transform(crs = 4326)
 
 bbox <- st_bbox(presences)
-bbox_buffer <- vect(st_buffer(st_as_sfc(st_bbox(presences)), dist = 10000))
+bbox_buffer <- vect(st_buffer(st_as_sfc(st_bbox(presences)), dist = 150000))
 
 
 # Visualize data
@@ -55,7 +55,7 @@ template <- rast(list[1]) %>%
 
 #### VARIABLES DE SUELOS ####
 # download data
-ph <- soil_world(var = "phh2o", depth = 15, path = "./Soilgrids250/") %>%
+ph <- soil_world(var = "phh2o", depth = 15, path = "./Soildgrids250/") %>%
   crop(ext(template), mask = T) %>%
   resample(template, method = "average")
 
