@@ -222,7 +222,7 @@ leaflet_map <- function(apply_cutoff = TRUE, binarize = FALSE, clip_layer, desir
 
 # SDM projections
 
-```{r Cinchona, echo=FALSE, message=FALSE, warning=FALSE, out.width = "100%"}
+```{r interactive_map, echo=FALSE, message=FALSE, warning=FALSE, out.width = "100%"}
 leaflet_map(
   apply_cutoff = TRUE, 
   binarize = FALSE, 
@@ -232,6 +232,7 @@ leaflet_map(
 )
 
 ```
+
 
 # Importancia de las variables
 
@@ -376,6 +377,8 @@ response_curves_plot
 ```
 
 
+# Figura proyecciones SDMs 
+```{r response_curves, echo=FALSE, message=FALSE, warning=FALSE, out.width = "100%"}
 
 
 ```
