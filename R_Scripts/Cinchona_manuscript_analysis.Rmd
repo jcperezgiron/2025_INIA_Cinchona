@@ -212,6 +212,63 @@ ggsave("C:/SCIENCE/2025_INIA_Cinchona/Manuscript/images/Figure_X1.png", fig,
 
 ```
 
+# Cambio de hábitat
+```{r habitat_change, echo=FALSE, message=FALSE, warning=FALSE, out.width = "100%"}
+myBiomodRangeSize <- biomod2::bm_RangeSize(
+  proj.current = sdm_current,
+  proj.future = sdm_future
+)
+
+changes <- myBiomodRangeSize$Diff.By.Pixel
+changes[changes == 0] <- NA
+
+
+plot_map_change <- function(r) {
+  ggplot() +
+    geom_spatraster(data = r) +
+    scale_fill_whitebox_c(
+      palette = "muted", direction = -1,
+      breaks = seq(-1, 1, 0.25), limits = c(-1, 1),
+      na.value = "transparent"
+    ) +
+    geom_spatvector(data = aoi_peru, fill = "transparent", color = "gray90") +
+    labs(
+      fill = "Change in habitat suitability"
+    ) +
+    guides(fill = guide_colourbar(order = 1, title.position = "top", title.hjust = 0.5)) +
+    theme_void(base_size = 8)+
+    theme(
+      legend.position = "bottom",
+      plot.title = element_text(hjust = 0.5, size = 12)
+    )+
+    facet_wrap(~lyr, ncol = 3)+
+    guides(
+      fill = guide_colourbar(order = 1, title.position = "top", title.hjust = 0.5, keywidth = unit(5, "cm")))
+}
+
+
+p1 <- plot_map_current(sdm_current) 
+p2 <- plot_map_change(changes)
+
+fig <- ggarrange(
+  p1, p2,
+  ncol = 2, nrow = 1,
+  align = "hv",
+  labels = c("a)", "b)"),
+  widths = c(0.5, 0.75),
+  common.legend = F, legend = "bottom"
+)
+
+
+ggsave("C:/SCIENCE/2025_INIA_Cinchona/Manuscript/images/Figure_X2_changes.png", fig,
+  units = "mm",
+  dpi = 300, width = 183, height = 120
+)
+
+
+```
+
+
 # Importancia de las variables
 
 ```{r variable_importance, echo=FALSE, message=FALSE, warning=FALSE, out.width = "100%"}
